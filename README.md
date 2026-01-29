@@ -1,6 +1,6 @@
 # This is a meta-repository that documents the system architecture and links to individual service repositories.
 
-Each service is developed and maintained independently 
+## Each service is developed and maintained independently 
 
 # Rootlytic — Observability & Error Intelligence Platform
 
@@ -22,18 +22,11 @@ This repository is the system entry point and architecture reference.
 
 ## flow
 
-User App
-   ↓
-Log Ingestion (Node.js)
-   ↓
-MongoDB
-   ↓
-Dashboard API (Spring Boot)
-   ↓
-React UI
+User App -> Log Ingestion (Node.js) -> MongoDB -> Dashboard API (Spring Boot) -> React UI
 
 
 Implemented:
+
 ✔ API-key based log ingestion
 ✔ Spring/Node error parsing & normalization
 ✔ Service creation & isolation
