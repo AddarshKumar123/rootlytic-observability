@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: rootlytic
+  data:
+    mongodb:
+      uri: ${MONGO_URI}
+
+server:
+  port: ${PORT:5050}
+
+gemini:
+  api:
+    url: ${GEMINI_API}
+    key: ${GEMINI_API_KEY}
