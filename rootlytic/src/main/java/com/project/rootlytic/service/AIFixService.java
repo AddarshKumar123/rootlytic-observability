@@ -7,23 +7,25 @@ import com.project.rootlytic.DTO.LogDTO;
 import com.project.rootlytic.repository.LogRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 public class AIFixService {
 
     @Autowired
+    private GitHubContextService gitHubContextService;
+
+    @Autowired
     LogRepository logRepository;
 
-    RestClient restClient=RestClient.create();
-    ObjectMapper objectMapper=new ObjectMapper();
+    private final RestClient restClient = RestClient.create();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${gemini.api.url}")
     private String geminiApiUrl;
@@ -31,25 +33,50 @@ public class AIFixService {
     @Value("${gemini.api.key}")
     private String geminiApiKey;
 
-    String prompt = "I am providing a parsed log details of the exceptions occurred on users application . Your task is to analyze the log and provide the best fix for it .Please don't ask any followup questions and provide the result strictly on the basis of log details provided . Just provide the solution and no more details or deeper explanations . I am attaching the error details .";
-
-
-    public String getAiFix(String Id) throws JsonProcessingException {
-
-        LogDTO logEntity = logRepository.findById(Id)
+    public Map<String,String> getAiFix(String id) throws JsonProcessingException {
+        LogDTO logEntity = logRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Log not found"));
 
-        if(logEntity.getAiFix()!=null){
-            return logEntity.getAiFix();
+        if (logEntity.getAICodeFix() != null) {
+            Map<String,String> aiFix=new HashMap<>();
+            aiFix.put("rca",logEntity.getAiRca());
+            aiFix.put("codeFix",logEntity.getAICodeFix());
         }
 
-        String error = logEntity.toString();
-        String finalPrompt = prompt + " " + error;
+         String sourceCodeContext = gitHubContextService.fetchFileByName(logEntity.getFileName(), "AddarshKumar123", "test", "main");
+
+
+        String prompt = String.format("""
+            You are an elite Staff Software Engineer diagnosing a production system failure.
+            
+            THE ERROR CONTEXT:
+            - Exception Type: %s
+            - Message: %s
+            - Endpoint: %s
+            - Failed Class/Method: %s.%s
+            - Line Number: %s
+            
+            THE EXACT SOURCE CODE (%s):
+            ```
+            %s
+            ```
+            
+            Based ONLY on the provided source code and error details, you must respond with a valid JSON object. 
+            Do NOT wrap the JSON in markdown formatting (like ```json). Return ONLY the raw JSON object with these two exact keys:
+            {
+                "rca": "A brief, technical Root Cause Analysis",
+                "codeFix": "The exact, corrected code snippet without markdown formatting"
+            }
+            """,
+                logEntity.getExceptionType(), logEntity.getMessage(), logEntity.getEndpoint(),
+                logEntity.getClassName(), logEntity.getMethodName(), logEntity.getLine(),
+                logEntity.getFileName(), sourceCodeContext
+        );
 
         Map<String, Object> body = Map.of(
                 "contents", new Object[]{
                         Map.of("parts", new Object[]{
-                                Map.of("text", finalPrompt)
+                                Map.of("text", prompt)
                         })
                 }
         );
@@ -63,18 +90,20 @@ public class AIFixService {
 
         String jsonResponse = response.getBody();
         JsonNode root = objectMapper.readTree(jsonResponse);
+        String aiRawOutput = root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
 
-        String result = root.path("candidates")
-                .get(0)
-                .path("content")
-                .path("parts")
-                .get(0)
-                .path("text")
-                .asText();
+        JsonNode customAiResponse = objectMapper.readTree(aiRawOutput);
+        String rca = customAiResponse.path("rca").asText();
+        String codeFix = customAiResponse.path("codeFix").asText();
 
-        logEntity.setAiFix(result);
+        logEntity.setAiRca(rca);
+        logEntity.setAICodeFix(codeFix);
         logRepository.save(logEntity);
 
-        return result;
+        Map<String,String> aiFix=new HashMap<>();
+        aiFix.put("rca",logEntity.getAiRca());
+        aiFix.put("codeFix",logEntity.getAICodeFix());
+
+        return aiFix;
     }
 }

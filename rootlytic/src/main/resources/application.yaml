@@ -12,3 +12,8 @@ gemini:
   api:
     url: ${GEMINI_API}
     key: ${GEMINI_API_KEY}
+
+github:
+  token: ${GITHUB_PAT}
+
+

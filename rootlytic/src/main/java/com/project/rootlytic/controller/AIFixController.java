@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -15,7 +16,7 @@ public class AIFixController {
     private AIFixService aiFixService;
 
     @PostMapping("/ai-fix/{id}")
-    public String getAiFix(@PathVariable String id) throws JsonProcessingException {
+    public Map<String,String> getAiFix(@PathVariable String id) throws JsonProcessingException {
         return aiFixService.getAiFix(id);
     }
 }

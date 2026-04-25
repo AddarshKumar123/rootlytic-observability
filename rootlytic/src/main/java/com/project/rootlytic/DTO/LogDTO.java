@@ -26,5 +26,6 @@ public class LogDTO {
     private String fileName;
     private String methodName;
     private String timestamp;
-    private String AiFix;
+    private String AiRca;
+    private String AICodeFix;
 }
