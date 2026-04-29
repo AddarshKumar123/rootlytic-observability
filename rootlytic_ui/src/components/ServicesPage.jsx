@@ -4,6 +4,7 @@ import axios from "axios";
 import "../css/Service.css"
 import data from "../endpoint"
 import TimeRangePicker from "./TimeRangePicker"
+import { CodeBlock, IconButton, createShikiAdapter } from "@chakra-ui/react"
 
 const ServicesPage = () => {
   const endpoint=data.server_endpoint;
@@ -52,8 +53,17 @@ const ServicesPage = () => {
       
     }
     
-  }
-  
+  }  
+  const shikiAdapter = createShikiAdapter({
+    async load() {
+      const { createHighlighter } = await import("shiki")
+      return createHighlighter({
+        langs: ["tsx", "scss", "html", "bash", "json","java"],
+        themes: ["github-dark"],
+      })
+    },
+    theme: "github-dark",
+  })
   
 
   return (
@@ -97,10 +107,29 @@ const ServicesPage = () => {
 
             <div className="gemini-fix-card">
               <div className="ai-header">
-                <span className="ai-sparkle">✨</span>
+                <span className="ai-sparkle"></span>
                 <h4>Gemini AI Suggested Fix</h4>
               </div>
-              <p>{selectedError.aiFix}</p>
+              <p>{selectedError.aiRca}</p>
+
+            <div className='doc-section'>
+              <CodeBlock.AdapterProvider value={shikiAdapter}>
+                <CodeBlock.Root code={selectedError.aicodeFix || ""} language={"java"}>
+                  <CodeBlock.Header>
+                    <CodeBlock.CopyTrigger asChild>
+                      <IconButton variant="ghost" size="2xs">
+                        <CodeBlock.CopyIndicator />
+                      </IconButton>
+                    </CodeBlock.CopyTrigger>
+                  </CodeBlock.Header>
+                  <CodeBlock.Content>
+                    <CodeBlock.Code>
+                      <CodeBlock.CodeText />
+                    </CodeBlock.Code>
+                  </CodeBlock.Content>
+                </CodeBlock.Root>
+              </CodeBlock.AdapterProvider>
+            </div>
               <button onClick={()=>{handleAiFix(selectedError._id)}} className="btn-apply">get Ai Fix</button>
             </div>
           </div>
