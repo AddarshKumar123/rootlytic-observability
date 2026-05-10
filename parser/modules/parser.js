@@ -53,7 +53,7 @@ module.exports = function parseLog(raw){
         exceptionType: raw.exceptionType,
         severity: raw.severity || "ERROR",
         message: raw.message || "Unknown error",
-        stack: raw.stackTrace[0] || null,
+        stack: (raw.stackTrace && raw.stackTrace[0]) ? raw.stackTrace[0] : null,
         endpoint: raw.endpoint || null,
         line: raw.lineNumber || null,
         className: raw.className,
