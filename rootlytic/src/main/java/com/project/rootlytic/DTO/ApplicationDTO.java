@@ -13,7 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ApplicationDTO {
-    private String id;
+    private String applicationId;
     private String applicationName;
     private String type;
     private String status;

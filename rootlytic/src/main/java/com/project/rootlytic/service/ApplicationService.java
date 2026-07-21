@@ -44,19 +44,22 @@ public class ApplicationService {
         UserModel user=userRepository.findByEmail(email);
         return user.getId();
     }
-    public ResponseEntity<String> createApplication(ApplicationDTO applicationDTO){
+    public ResponseEntity<String> createApplication(ApplicationModel applicationModel){
         try{
             String userId=getUserId();
 
             String rawUuid = UUID.randomUUID().toString();
 
-            ApplicationModel applicationModel=new ApplicationModel();
-            applicationModel.setApplicationName(applicationDTO.getApplicationName());
-            applicationModel.setType(applicationDTO.getType());
-            applicationModel.setStatus(applicationDTO.getStatus());
-            applicationModel.setApi_key(rawUuid);
-            applicationModel.setUserId(userId);
-            applicationRepository.save(applicationModel);
+            ApplicationModel application=new ApplicationModel();
+            application.setApplicationName(applicationModel.getApplicationName());
+            application.setType(applicationModel.getType());
+            application.setStatus(applicationModel.getStatus());
+            application.setApi_key(rawUuid);
+            application.setUserId(userId);
+            application.setGithubUsername(applicationModel.getGithubUsername());
+            application.setRepoName(applicationModel.getRepoName());
+            application.setBranch(applicationModel.getBranch());
+            applicationRepository.save(application);
             return new ResponseEntity<>(rawUuid,HttpStatus.OK);
         }catch (Exception e){
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);

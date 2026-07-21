@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface ApplicationRepository extends MongoRepository<ApplicationModel,String> {
     List<ApplicationModel> findApplicationByUserId(String userId);
+    ApplicationModel findByApplicationId(String appId);
 }

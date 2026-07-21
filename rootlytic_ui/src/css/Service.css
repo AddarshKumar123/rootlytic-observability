@@ -37,16 +37,15 @@
 /* List Pane */
 .error-list {
   width: 350px;
-  /* background-color: #0f172a; */
-  border-right: 1px solid #334155;
+  border-right: 1px solid #0a6a75;
   padding: 1rem;
   overflow-y: auto;
 }
 
 .error-item {
   padding: 1rem;
-  border-radius: 8px;
-  background: #1e293b;
+  border-radius: 8px solid #0a6a75;
+  background: #00040e;
   margin-bottom: 1rem;
   cursor: pointer;
   border: 1px solid transparent;
@@ -89,8 +88,8 @@
 }
 
 .gemini-fix-card {
-  background: linear-gradient(145deg, #1e293b, #0f172a);
-  border: 1px solid #818cf8;
+  background: #000000;
+  border: 1px solid #81f6f8;
   padding: 1.5rem;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);

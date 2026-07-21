@@ -19,6 +19,7 @@ public class GitHubContextService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public String fetchFileByName(String fileName, String owner, String repo,String branch) {
+        System.out.println("Fetching file - Owner: " + owner + ", Repo: " + repo + ", Branch: " + branch + ", File: " + fileName);
 
         String treeUrl = String.format("https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1", owner, repo,branch);
 

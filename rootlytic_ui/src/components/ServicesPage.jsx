@@ -11,11 +11,15 @@ const ServicesPage = () => {
   const [selectedError, setSelectedError] = useState(null);
   const [timeRange, setTimeRange] = useState(null);
   const [errors,setErrors]=useState([]);
+  const [allErrors,setAllErrors]=useState([]);
   const {id} =useParams();
 
-  const handleAiFix=async(id)=>{
-    await axios.post(`${endpoint}/ai-fix/${id}`,{},{withCredentials:true});        
+  const handleAiFix=async(logId)=>{
+    await axios.post(`${endpoint}/ai-fix/${logId}`, {appId: id}, {withCredentials:true});        
   }
+
+  console.log(errors);
+  
 
   useEffect(()=>{
     const fetchLogs=async()=>{
@@ -23,6 +27,7 @@ const ServicesPage = () => {
           const res=await axios.get(`${endpoint}/${id}/getlogs`,{
             withCredentials:true
           });
+          setAllErrors(res.data);
           setErrors(res.data);
       }catch(err){
         if(err.response.status==403){
@@ -37,22 +42,7 @@ const ServicesPage = () => {
   
   const handleTime = async(e) =>{
     setTimeRange(e);
-    try{
-        const res=await axios.get(`${endpoint}/new`,
-        {
-          params:{
-            since: new Date(e.start).getTime()
-          },
-          withCredentials:true
-        },
-      );
-        console.log(res);
-        setErrors(res.data)
-    }catch(err){
-      console.log(err);
-      
-    }
-    
+    setErrors(allErrors.filter(err => err.timestamp >= e.start && err.timestamp <= e.end));
   }  
   const shikiAdapter = createShikiAdapter({
     async load() {
@@ -108,13 +98,13 @@ const ServicesPage = () => {
             <div className="gemini-fix-card">
               <div className="ai-header">
                 <span className="ai-sparkle"></span>
-                <h4>Gemini AI Suggested Fix</h4>
+                <h4>AI Suggested Fix</h4>
               </div>
               <p>{selectedError.aiRca}</p>
 
             <div className='doc-section'>
               <CodeBlock.AdapterProvider value={shikiAdapter}>
-                <CodeBlock.Root code={selectedError.aicodeFix || ""} language={"java"}>
+                <CodeBlock.Root code={selectedError.aiCodeFix || ""} language={"java"}>
                   <CodeBlock.Header>
                     <CodeBlock.CopyTrigger asChild>
                       <IconButton variant="ghost" size="2xs">

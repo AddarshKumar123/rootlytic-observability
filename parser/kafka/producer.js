@@ -2,7 +2,15 @@ const {Kafka} = require("kafkajs")
 
 const kafka=new Kafka({
     clientId:"logs_producer",
-    brokers:["localhost:9092"]
+    brokers:[process.env.KAFKA_BROKERS || "localhost:9092"],
+    ssl: process.env.KAFKA_SSL === "true" ? {
+      rejectUnauthorized: false
+    } : false,
+    sasl: process.env.KAFKA_SASL_MECHANISM ? {
+      mechanism: process.env.KAFKA_SASL_MECHANISM,
+      username: process.env.KAFKA_USERNAME,
+      password: process.env.KAFKA_PASSWORD
+    } : undefined
 })
 
 const producer=kafka.producer();

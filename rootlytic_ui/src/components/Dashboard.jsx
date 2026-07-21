@@ -13,8 +13,13 @@ const Dashboard = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [apiKey,setApiKey]=useState(null);
-  const [serviceName, setServiceName] = useState('');
-  const [serviceType, setServiceType] = useState('Backend');
+  const [formData, setFormData] = useState({
+    serviceName: '',
+    serviceType: 'springboot',
+    githubUsername: '',
+    repoName: '',
+    branch: ''
+  });
   const [services,setServices] = useState([]);
   const navigate = useNavigate();
 
@@ -24,7 +29,7 @@ const Dashboard = () => {
           const res=await axios.get(`${endpoint}/fetch_application`,{
             withCredentials:true
           });
-          setServices(res.data);
+          setServices(res.data);          
       }catch(err){
           if(err.response.status==403){
             navigate("/login");
@@ -37,16 +42,22 @@ const Dashboard = () => {
 
   const handleCreate = async(e) => {
     e.preventDefault();
-    const formData={
-      applicationName:serviceName,
-      type:serviceType
+    const data={
+      applicationName: formData.serviceName,
+      type: formData.serviceType,
+      githubUsername: formData.githubUsername,
+      repoName: formData.repoName,
+      branch: formData.branch
     }
+
+    console.log(data);
     
-    const res=await axios.post(`${endpoint}/create_application`,formData,{
+
+    const res=await axios.post(`${endpoint}/create_application`,data,{
       withCredentials:true
     });
     setApiKey(res.data);
-    
+
     setIsCreateModalOpen(false);
     setIsSuccessModalOpen(true);
 
@@ -54,22 +65,19 @@ const Dashboard = () => {
 
   const handleProceedToDocs = () => {
     setIsSuccessModalOpen(false);
-    navigate('/integration', { state: { name: serviceName } });
+    navigate('/integration', { state: { name: formData.serviceName } });
   };
   
   return (
     <div className="dashboard-wrapper">
       <main className="detail-pane">
         <header className="page-header">
-          <Text textStyle={"4xl"}>My Services</Text>
-          {/* <button className="btn-primary" onClick={() => setIsCreateModalOpen(true)}>
-            + Create New Service
-          </button> */}
+          <Text textStyle={"5xl"}>All <span className="highlight">Services</span></Text>
+        </header>
 
-          <Button onClick={() => setIsCreateModalOpen(true)} mt={"10"} colorPalette="teal" variant="outline">
+          <Button onClick={() => setIsCreateModalOpen(true)} size={"xl"} rounded="3xl" mt={"10"} colorPalette="teal">
             + Create New Service
           </Button>
-        </header>
 
         <div className="services-grid">
           {services.length>0 ? 
@@ -87,7 +95,9 @@ const Dashboard = () => {
             //   <button className="btn-outline">View Logs</button>
             //   </Link>
             // </div>
-            <Card.Root className='card' width="320px">
+
+            <Card.Root className='feature-card' width="320px">
+              <div className="feature-card-border"></div>
               <Card.Body gap="2">
                 <Card.Title mt="2">{service.applicationName}</Card.Title>
                 <Card.Description>
@@ -99,9 +109,10 @@ const Dashboard = () => {
               <Card.Footer justifyContent="flex-end">
                   <Button  
                     as={Link}
-                    to={`/${service.id}/services`} 
-                    className='button' 
-                    variant="outline">View Logs</Button>
+                    to={`/${service.applicationId}/services`} 
+                    colorPalette={"teal"}
+                    color={"black"}
+                    >View Logs</Button>
               </Card.Footer>
             </Card.Root>
           ))) :
@@ -120,21 +131,50 @@ const Dashboard = () => {
               <form onSubmit={handleCreate}>
                 <div className="form-group">
                   <label>Service Name</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Payment-Gateway-Prod" 
-                    value={serviceName}
-                    onChange={(e) => setServiceName(e.target.value)}
+                  <input
+                    type="text"
+                    value={formData.serviceName}
+                    onChange={(e) => setFormData({...formData, serviceName: e.target.value})}
                     required
                   />
                 </div>
-                
+
                 <div className="form-group">
-                  <label>Environment</label>
-                  <select value={serviceType} onChange={(e) => setServiceType(e.target.value)}>
+                  <label>Service Type</label>
+                  <select value={formData.serviceType} onChange={(e) => setFormData({...formData, serviceType: e.target.value})}>
                     <option value="springboot">springboot</option>
                     <option value="react">react</option>
                   </select>
+                </div>
+
+                <div className="form-group">
+                  <label>GitHub Username</label>
+                  <input
+                    type="text"
+                    value={formData.githubUsername}
+                    onChange={(e) => setFormData({...formData, githubUsername: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Repository Name</label>
+                  <input
+                    type="text"
+                    value={formData.repoName}
+                    onChange={(e) => setFormData({...formData, repoName: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Branch</label>
+                  <input
+                    type="text"
+                    value={formData.branch}
+                    onChange={(e) => setFormData({...formData, branch: e.target.value})}
+                    required
+                  />
                 </div>
 
                 <div className="modal-actions">

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.rootlytic.DTO.LogDTO;
+import com.project.rootlytic.model.ApplicationModel;
+import com.project.rootlytic.repository.ApplicationRepository;
 import com.project.rootlytic.repository.LogRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +26,9 @@ public class AIFixService {
     @Autowired
     LogRepository logRepository;
 
+    @Autowired
+    ApplicationRepository applicationRepository;
+
     private final RestClient restClient = RestClient.create();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -33,17 +38,23 @@ public class AIFixService {
     @Value("${gemini.api.key}")
     private String geminiApiKey;
 
-    public Map<String,String> getAiFix(String id) throws JsonProcessingException {
+    public Map<String,String> getAiFix(String id,String appId) throws JsonProcessingException {
         LogDTO logEntity = logRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Log not found"));
 
-        if (logEntity.getAICodeFix() != null) {
+        if (logEntity.getAiCodeFix() != null) {
             Map<String,String> aiFix=new HashMap<>();
             aiFix.put("rca",logEntity.getAiRca());
-            aiFix.put("codeFix",logEntity.getAICodeFix());
+            aiFix.put("codeFix",logEntity.getAiCodeFix());
+            return aiFix;
         }
 
-         String sourceCodeContext = gitHubContextService.fetchFileByName(logEntity.getFileName(), "AddarshKumar123", "test", "main");
+        ApplicationModel applicationModel=applicationRepository.findByApplicationId(appId);
+        String gitHubUser= applicationModel.getGithubUsername();
+        String repo= applicationModel.getRepoName();
+        String branch=applicationModel.getBranch();
+
+         String sourceCodeContext = gitHubContextService.fetchFileByName(logEntity.getFileName(), gitHubUser, repo, branch);
 
 
         String prompt = String.format("""
@@ -95,14 +106,13 @@ public class AIFixService {
         JsonNode customAiResponse = objectMapper.readTree(aiRawOutput);
         String rca = customAiResponse.path("rca").asText();
         String codeFix = customAiResponse.path("codeFix").asText();
-
         logEntity.setAiRca(rca);
-        logEntity.setAICodeFix(codeFix);
+        logEntity.setAiCodeFix(codeFix);
         logRepository.save(logEntity);
 
         Map<String,String> aiFix=new HashMap<>();
         aiFix.put("rca",logEntity.getAiRca());
-        aiFix.put("codeFix",logEntity.getAICodeFix());
+        aiFix.put("codeFix",logEntity.getAiCodeFix());
 
         return aiFix;
     }

@@ -6,13 +6,13 @@
 }
 
 .landing-container {
-  background-image: url("background.jpg");
+  background-image: url("/background.jpg");
   background-size: cover;
   background-color: var(--bg-color);
   color: var(--text-main);
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
-  padding: 0 2rem; 
+  padding: 0 2rem;
   width: 100vw;
   box-sizing: border-box;
 }

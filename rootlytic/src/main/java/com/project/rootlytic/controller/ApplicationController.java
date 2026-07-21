@@ -18,8 +18,8 @@ public class ApplicationController {
     ApplicationService applicationService;
 
     @PostMapping("/create_application")
-    public ResponseEntity<String> createApplication(@RequestBody ApplicationDTO applicationDTO){
-        return applicationService.createApplication(applicationDTO);
+    public ResponseEntity<String> createApplication(@RequestBody ApplicationModel applicationModel){
+        return applicationService.createApplication(applicationModel);
     }
 
     @GetMapping("/fetch_application")

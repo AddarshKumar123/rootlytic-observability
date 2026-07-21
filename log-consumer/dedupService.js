@@ -7,20 +7,15 @@ const checkDuplicate=async(log)=>{
     
     if(exists){
         await client.incr(`${hash}:count`);
-
         return {
         isDuplicate: true,
         fingerprint: hash,
         };
     }
     
-    await client.set(hash, "seen",{
-        EX:3600
-    });
+    await client.set(hash, "seen", { ex: 3600 });
 
-    await client.set(`${hash}:count`, 1,{
-        EX:3600
-    });
+    await client.set(`${hash}:count`, 1, { ex: 3600 });
 
     return {
         isDuplicate: false,

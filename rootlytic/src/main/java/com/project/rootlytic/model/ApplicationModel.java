@@ -18,11 +18,14 @@ import java.util.List;
 @Document(collection = "applications")
 public class ApplicationModel {
     @Id
-    private String id;
+    private String applicationId;
     private String userId;
     private String api_key;
     private String applicationName;
     private String type;
     private String status;
+    private String githubUsername;
+    private String repoName;
+    private String branch;
     private List<Object>errorLogs =new ArrayList<>();
 }
