@@ -1,5 +1,6 @@
 const { Kafka } = require("kafkajs");
 const mongoose = require("mongoose");
+const express = require("express");
 const mongoConfig  = require("./database/db");
 const checkDuplicate = require("./dedupService");
 const {client, connectRedis} = require('./redisClient');
@@ -22,15 +23,40 @@ const kafka = new Kafka({
 
 const consumer = kafka.consumer({ groupId: "log-group" });
 
+let kafkaConnected = false;
+let redisConnected = false;
+let mongoConnected = false;
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/health', (req, res) => {
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    services: {
+      kafka: kafkaConnected ? 'connected' : 'disconnected',
+      redis: redisConnected ? 'connected' : 'disconnected',
+      mongodb: mongoConnected ? 'connected' : 'disconnected'
+    }
+  };
+  
+  const allConnected = kafkaConnected && redisConnected && mongoConnected;
+  res.status(allConnected ? 200 : 503).json(health);
+});
+
 const run = async () => {
   try {
     await connectRedis();
+    redisConnected = true;
     console.log("Redis Connected");
     
     await mongoose.connect(mongoConfig.mongouri);
+    mongoConnected = true;
     console.log("Connected to MongoDB");
     
     await consumer.connect();
+    kafkaConnected = true;
     console.log("Kafka Consumer Connected");
     
     await consumer.subscribe({ topic: "logs", fromBeginning: true });
@@ -55,6 +81,10 @@ const run = async () => {
           console.error("Raw message:", message.value.toString());
         }
       },
+    });
+
+    app.listen(PORT, () => {
+      console.log(`Health check server running on port ${PORT}`);
     });
   } catch (error) {
     console.error("Consumer error:", error);
