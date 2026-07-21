@@ -2,11 +2,11 @@
 
 A comprehensive multi-service system that ingests runtime errors from distributed applications, normalizes and deduplicates them, and provides service-level dashboards for debugging with AI-powered fix suggestions.
 
-## 🏗️ Project Overview
+## Project Overview
 
 Rootlytic is a modern observability platform designed to help developers monitor, analyze, and resolve errors across distributed applications. The system consists of three main services working together to provide end-to-end error management.
 
-### 📋 Table of Contents
+### Table of Contents
 
 - [Architecture](#-architecture)
 - [Services](#-services)
@@ -21,28 +21,42 @@ Rootlytic is a modern observability platform designed to help developers monitor
 
 ```
 ┌─────────────┐    ┌──────────────┐    ┌─────────────┐    ┌──────────────┐    ┌─────────────┐
-│   User App  │───▶│ Log Parser   │───▶│   MongoDB   │───▶│ Dashboard    │───▶│ React UI    │
-│             │    │ (Node.js)    │    │             │    │ API (Spring) │    │             │
-└─────────────┘    └──────────────┘    └─────────────┘    └──────────────┘    └─────────────┘
+│   User App  │───▶│ Log Parser   │───▶│    Kafka    │───▶│ Log Consumer │───▶│   MongoDB   │
+│             │    │ (Node.js)    │    │   Message   │    │  (Node.js)   │    │             │
+└─────────────┘    └──────────────┘    │    Broker   │    └──────────────┘    └─────────────┘
+                                          └─────────────┘           │
+                                                                   │
+                                            ┌─────────────┐         │
+                                            │    Redis    │◄────────┘
+                                            │ Deduplication│
+                                            └─────────────┘
+                                                                   │
+                                                                   ▼
+                                            ┌──────────────┐    ┌─────────────┐
+                                            │ Dashboard    │───▶│ React UI    │
+                                            │ API (Spring) │    │             │
+                                            └──────────────┘    └─────────────┘
 ```
 
-## 🚀 Services
+##  Services
 
 ### 1. Log Parser Service (`/parser`)
-**Technology:** Node.js, Express, MongoDB  
+**Technology:** Node.js, Express, Kafka  
 **Port:** 5000  
-**Purpose:** Log ingestion and normalization
+**Purpose:** Log ingestion, parsing, and Kafka publishing
 
 **Key Responsibilities:**
 - API key-based authentication for secure log submission
 - Multi-format log parsing (JSON and raw text)
-- Error normalization and deduplication
+- Error normalization and enrichment
 - Service isolation and management
 - Stack trace extraction and parsing
+- Publishing parsed logs to Kafka message broker
 
 **Key Files:**
 - `index.js` - Main server with `/logs` endpoint
 - `modules/parser.js` - Advanced log parsing logic
+- `kafka/producer.js` - Kafka producer for log publishing
 - `model/log.js` - Log data schema
 - `model/service.js` - Service management schema
 
@@ -51,8 +65,33 @@ Rootlytic is a modern observability platform designed to help developers monitor
 - Automatic error message extraction
 - File and line number detection
 - Service-based log segregation
+- Asynchronous log processing via Kafka
 
-### 2. Dashboard API Service (`/rootlytic`)
+### 2. Log Consumer Service (`/log-consumer`)
+**Technology:** Node.js, Kafka, Redis, MongoDB  
+**Purpose:** Log consumption, deduplication, and storage
+
+**Key Responsibilities:**
+- Consumes logs from Kafka message broker
+- Real-time log deduplication using Redis
+- Persistent storage in MongoDB
+- Error fingerprinting and counting
+- High-throughput log processing
+
+**Key Files:**
+- `consumer.js` - Kafka consumer implementation
+- `dedupService.js` - Redis-based deduplication logic
+- `redisClient.js` - Redis client configuration
+- `database/db.js` - MongoDB connection setup
+
+**Features:**
+- Efficient duplicate detection using Redis
+- Log fingerprinting with configurable TTL
+- Duplicate counting for error frequency analysis
+- Fault-tolerant message processing
+- Support for SSL/SASL Kafka authentication
+
+### 3. Dashboard API Service (`/rootlytic`)
 **Technology:** Spring Boot 3.2.5, Java 17, MongoDB  
 **Purpose:** Backend API for dashboard and analytics
 
@@ -80,7 +119,7 @@ Rootlytic is a modern observability platform designed to help developers monitor
 - Service-level error analytics
 - User authentication and authorization
 
-### 3. Frontend UI (`/rootlytic_ui`)
+### 4. Frontend UI (`/rootlytic_ui`)
 **Technology:** React 19, Vite, Chakra UI, React Router  
 **Purpose:** Modern web interface for error monitoring and management
 
@@ -99,48 +138,55 @@ Rootlytic is a modern observability platform designed to help developers monitor
   - AI-powered fix suggestions display
   - Responsive design with Chakra UI
 
-## ✨ Key Features
+##  Key Features
 
-### 🔄 Log Ingestion & Processing
+###  Log Ingestion & Processing
 - **API Key Authentication:** Secure log submission with service-specific API keys
 - **Multi-format Support:** Handles both structured JSON and raw text logs
 - **Intelligent Parsing:** Automatic extraction of error messages, stack traces, and metadata
 - **Language Agnostic:** Supports JavaScript/Node.js and Java stack traces
+- **Event-Driven Architecture:** Kafka-based asynchronous log processing
+- **Real-time Deduplication:** Redis-powered duplicate detection with fingerprinting
 
-### 🤖 AI-Powered Intelligence
+### AI-Powered Intelligence
 - **Root Cause Analysis:** Gemini AI analyzes errors and provides technical RCA
 - **Code Fix Suggestions:** AI generates corrected code snippets based on source context
 - **GitHub Integration:** Fetches relevant source code for accurate analysis
 - **Context-Aware:** Uses actual codebase for precise error resolution
 
-### 📊 Analytics & Monitoring
+###  Analytics & Monitoring
 - **Service-Level Isolation:** Separate error tracking per application/service
 - **Error Aggregation:** Groups similar errors for efficient analysis
 - **Real-time Dashboard:** Live monitoring of error trends and patterns
 - **Historical Analysis:** Time-based error tracking and filtering
 
-### 🔐 Security & Management
+###  Security & Management
 - **User Authentication:** JWT-based secure login system
 - **Service Management:** Create, manage, and isolate multiple applications
 - **API Key Generation:** Automatic generation of secure API keys per service
 - **Access Control:** Role-based access to error data and analytics
 
-## 🌊 Data Flow
+##  Data Flow
 
 1. **Log Submission:** Applications send errors to Log Parser service with API key
 2. **Authentication:** Service validates API key and identifies the application
 3. **Parsing & Normalization:** Logs are parsed, normalized, and enriched with metadata
-4. **Storage:** Processed logs are stored in MongoDB with service association
-5. **Analysis:** Dashboard API aggregates errors and provides analytics endpoints
-6. **AI Processing:** When requested, AI service analyzes errors with GitHub context
-7. **Visualization:** React UI displays errors, analytics, and AI suggestions
+4. **Kafka Publishing:** Parsed logs are published to Kafka message broker for async processing
+5. **Log Consumption:** Log Consumer service subscribes to Kafka topic and processes logs
+6. **Deduplication:** Redis performs real-time duplicate detection using log fingerprinting
+7. **Storage:** Unique logs are stored in MongoDB with service association
+8. **Analysis:** Dashboard API aggregates errors and provides analytics endpoints
+9. **AI Processing:** When requested, AI service analyzes errors with GitHub context
+10. **Visualization:** React UI displays errors, analytics, and AI suggestions
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Backend Services
-- **Node.js:** Log parsing service (Express, Mongoose)
+- **Node.js:** Log parsing and consumer services (Express, KafkaJS)
 - **Spring Boot:** Dashboard API (Spring Security, MongoDB, JWT)
 - **MongoDB:** Primary data storage for logs and services
+- **Kafka:** Distributed message broker for event-driven log processing
+- **Redis:** In-memory data store for real-time deduplication
 - **Gemini AI:** AI-powered error analysis and fix suggestions
 - **GitHub API:** Source code context retrieval
 
@@ -156,12 +202,14 @@ Rootlytic is a modern observability platform designed to help developers monitor
 - **npm:** Node.js package management
 - **Docker:** Containerization support (dockerfile included)
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 - Node.js 18+
 - Java 17+
 - MongoDB instance
+- Kafka message broker (or use provided docker-compose)
+- Redis instance (or use provided docker-compose)
 - Gemini AI API key
 - GitHub personal access token
 
@@ -173,15 +221,29 @@ git clone https://github.com/AddarshKumar123/rootlytic-observability
 cd rootlytic-observability
 ```
 
-2. **Set up Log Parser Service:**
+2. **Start Infrastructure (Kafka & Redis):**
+```bash
+cd parser
+docker-compose up -d
+```
+
+3. **Set up Log Parser Service:**
 ```bash
 cd parser
 npm install
-cp .env.example .env  # Configure MongoDB connection
+cp .env.example .env  # Configure MongoDB and Kafka connection
 npm start
 ```
 
-3. **Set up Dashboard API:**
+4. **Set up Log Consumer Service:**
+```bash
+cd log-consumer
+npm install
+cp .env.example .env  # Configure MongoDB, Redis, and Kafka connection
+node consumer.js
+```
+
+5. **Set up Dashboard API:**
 ```bash
 cd ../rootlytic
 ./mvnw install
@@ -189,7 +251,7 @@ cd ../rootlytic
 ./mvnw spring-boot:run
 ```
 
-4. **Set up Frontend:**
+6. **Set up Frontend:**
 ```bash
 cd ../rootlytic_ui
 npm install
@@ -202,6 +264,15 @@ npm run dev
 ```
 MONGODB_URI=mongodb://localhost:27017/rootlytic
 PORT=5000
+KAFKA_BROKERS=localhost:9092
+```
+
+**Log Consumer Service (.env):**
+```
+MONGODB_URI=mongodb://localhost:27017/rootlytic
+KAFKA_BROKERS=localhost:9092
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
 
 **Dashboard API (application.properties):**
@@ -212,9 +283,11 @@ gemini.api.key=your_gemini_api_key
 github.token=your_github_token
 ```
 
-## ✅ Implemented Features
+## Implemented Features
 
 - [x] **API-key based log ingestion** - Secure log submission with service authentication
+- [x] **Event-driven architecture** - Kafka-based asynchronous log processing pipeline
+- [x] **Real-time deduplication** - Redis-powered duplicate detection with log fingerprinting
 - [x] **Multi-language error parsing** - Support for JavaScript/Node.js and Java stack traces
 - [x] **Service creation & isolation** - Multi-tenant service management
 - [x] **Error aggregation per service** - Intelligent grouping and deduplication
@@ -224,9 +297,10 @@ github.token=your_github_token
 - [x] **User authentication system** - JWT-based secure login
 - [x] **Real-time error monitoring** - Live dashboard updates
 - [x] **Service-level analytics** - Per-application error tracking
+- [x] **High-throughput processing** - Scalable Kafka consumer for log ingestion
 
 
-## 📚 API Documentation
+## API Documentation
 
 ### Log Parser Endpoints
 - `POST /logs` - Submit error logs with API key authentication
@@ -238,7 +312,7 @@ github.token=your_github_token
 - `GET /new?since={timestamp}` - Get recent errors
 - `POST /ai-fix/{id}` - Get AI-powered fix suggestions
 
-## 🤝 Contributing
+## Contributing
 
 This is a meta-repository that documents the system architecture. Individual services are maintained in separate repositories:
 
@@ -246,6 +320,3 @@ This is a meta-repository that documents the system architecture. Individual ser
 - [Dashboard API](https://github.com/AddarshKumar123/rootlytic_dashboard_API)
 - [Frontend UI](https://github.com/AddarshKumar123/rootlytic_ui)
 
-## 📄 License
-
-This project is licensed under the ISC License.
