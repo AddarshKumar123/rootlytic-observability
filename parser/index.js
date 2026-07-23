@@ -11,35 +11,24 @@ const port=5000;
 app.use(express.json());
 app.use(express.text({type:"text/plain"}));
 
-const startServer = async () => {
-    try {
-        await connectProducer();
-        console.log("Producer connected successfully");
-        
-        await mongoose.connect(mongoConfig.mongouri);
-        console.log("Connected to database");
-        
-        app.listen(port, () => {
-            console.log(`Server running on port ${port}`);
-        });
-    } catch (error) {
-        console.error("Failed to start server:", error);
-        process.exit(1);
-    }
-};
-
-startServer();
+app.get("/health",(req,res)=>{
+    const health = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        services: {
+            mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+        }
+    };
+    res.json(health);
+})
 
 app.post("/logs",async(req,res)=>{
     try{ 
-        const apiKey=req.headers["api_key"];                
+        const apiKey=req.headers["api_key"];
         
         if (!apiKey) {
             return res.status(401).json({ error: "API key missing" });
         }
-
-        console.log(apiKey);
-        
         
         const service= await serviceModel.findOne({api_key:apiKey});
         
@@ -66,3 +55,22 @@ app.post("/logs",async(req,res)=>{
         res.status(500).json({error: "Internal server error", details: err.message});
     }
 })
+
+const startServer = async () => {
+    try {
+        await connectProducer();
+        console.log("Producer connected successfully");
+        
+        await mongoose.connect(mongoConfig.mongouri);
+        console.log("Connected to database");
+        
+        app.listen(port, () => {
+            console.log(`Server running on port ${port}`);
+        });
+    } catch (error) {
+        console.error("Failed to start server:", error);
+        process.exit(1);
+    }
+};
+
+startServer();
