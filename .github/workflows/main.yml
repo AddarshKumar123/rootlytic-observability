@@ -2,7 +2,7 @@ name: Keep Render Alive
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Ping App 1
-        run: curl -fsSL https://rootlytic-dashboard-api.onrender.com
+        run: curl -fsSL https://rootlytic-dashboard-api.onrender.com/health
 
       - name: Ping App 2
-        run: curl -fsSL https://rootlytic-observability-2.onrender.com
+        run: curl -fsSL https://rootlytic-observability-2.onrender.com/health
 
       - name: Ping App 3
-        run: curl -fsSL https://rootlytic-observability-1.onrender.com
+        run: curl -fsSL https://rootlytic-observability-1.onrender.com/health
